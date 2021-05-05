@@ -1,36 +1,36 @@
-
 import cv2
 import numpy as np
 import utlis
- 
+
+
 curveList = []
-avgVal=10
- 
-def getLaneCurve(img,display=2):
- 
+avgVal = 10
+
+def getLaneCurve(img, display=2):
+
     imgCopy = img.copy()
     imgResult = img.copy()
-    #### STEP 1
+    ### STEP 1 - threshold for color bgr values to 
     imgThres = utlis.thresholding(img)
- 
-    #### STEP 2
-    hT, wT, c = img.shape
+
+    ### STEP 2  
+    hT, wT, c, = img.shape
     points = utlis.valTrackbars()
     imgWarp = utlis.warpImg(imgThres,points,wT,hT)
-    imgWarpPoints = utlis.drawPoints(imgCopy,points)
- 
-    #### STEP 3
-    middlePoint,imgHist = utlis.getHistogram(imgWarp,display=True,minPer=0.5,region=4)
-    curveAveragePoint, imgHist = utlis.getHistogram(imgWarp, display=True, minPer=0.9)
-    curveRaw = curveAveragePoint - middlePoint
- 
-    #### SETP 4
+    imgWarpPoints = utlis.drawPoints(imgCopy, points)
+
+    ### STEP 3 - Histogram to determine index of desired bgr
+    middlePoint, imgHist = utlis.getHistogram(imgWarp,display=True,minPer=0.5,region=4)
+    curveAveragePoint, imgHist = utlis.getHistogram(imgWarp,display=True,minPer=0.9)
+    curveRaw = curveAveragePoint - middlePoint # current curve values
+
+    ### STEP 4 - calculate curve angle
     curveList.append(curveRaw)
-    if len(curveList)>avgVal:
+    if len(curveList) > 10:
         curveList.pop(0)
-    curve = int(sum(curveList)/len(curveList))
- 
-    #### STEP 5
+    curve = int(sum(curveList)/len(curveList)) # averaging curve length
+    
+    ### STEP 5 - display format image
     if display != 0:
         imgInvWarp = utlis.warpImg(imgWarp, points, wT, hT, inv=True)
         imgInvWarp = cv2.cvtColor(imgInvWarp, cv2.COLOR_GRAY2BGR)
@@ -55,30 +55,23 @@ def getLaneCurve(img,display=2):
         cv2.imshow('ImageStack', imgStacked)
     elif display == 1:
         cv2.imshow('Resutlt', imgResult)
-
+ 
     #### NORMALIZATION
     curve = curve/100
     if curve>1: curve ==1
     if curve<-1:curve == -1
-    print(curve)
+ 
     return curve
- 
- 
+    
 if __name__ == '__main__':
-    cap = cv2.VideoCapture('vid1.mp4')
-    intialTrackBarVals = [102, 80, 20, 214 ]
-    utlis.initializeTrackbars(intialTrackBarVals)
-    frameCounter = 0
+    cap = cv2.VideoCapture('vid1.mp4') 
+    initialTrackBarVals = [140,200,20,360]
+    utlis.initializeTrackbars(initialTrackBarVals)
     while True:
-        frameCounter += 1
-        if cap.get(cv2.CAP_PROP_FRAME_COUNT) == frameCounter:
-            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-            frameCounter = 0
- 
-        success, img = cap.read()
-        img = cv2.resize(img,(480,240))
-        curve = getLaneCurve(img,display=2)
-        print(curve)
-        #cv2.imshow('Vid',img)
+        _, img = cap.read() # GET THE IMAGE
+        img = cv2.resize(img,(640,480)) # RESIZE
+        getLaneCurve(img)
+
+        cv2.imshow('Vid', img)
         cv2.waitKey(1)
         
